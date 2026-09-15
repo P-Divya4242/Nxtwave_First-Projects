@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="SpendWise student expense tracker" />
+  <title>SpendWise — Student Expense Tracker</title>
+  <link rel="stylesheet" href="style.css" />
+<link rel="stylesheet" href="compact-settings-override.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="#home" aria-label="SpendWise home">
+      <img src="logo.png" alt="SpendWise logo" class="brand-logo" />
+    </a>
+
+    <nav class="nav-links" aria-label="Main navigation">
+      <a href="#home">Home</a>
+      <a href="#why">Why track</a>
+      <a href="#settings">Settings</a>
+      <a href="#annual">Year view</a>
+      <a href="#contact">Contact</a>
+    </nav>
+
+    <div class="header-actions">
+      <span id="todayLabel" class="date-label"></span>
+      <button id="clearAllBtn" class="btn btn-light">Clear all</button>
+      <button id="menuBtn" class="menu-btn" aria-label="Open menu" aria-expanded="false">☰</button>
+    </div>
+  </header>
+
+  <main>
+    <section id="home" class="hero section-shell">
+      <p class="eyebrow">YOUR MONEY, YOUR RULES</p>
+      <h1>Know where every <span>rupee</span> goes.</h1>
+      <p class="hero-subtitle">Canteen chai, bus fares, textbooks — track it all in one place.</p>
+    </section>
+
+    <section class="section-shell summary-grid" aria-label="Spending summary">
+      <article class="summary-card dark">
+        <p class="card-label">TOTAL SPENT</p>
+        <strong id="totalSpent">₹0.00</strong>
+        <p id="expenseCount">0 expenses recorded</p>
+      </article>
+
+      <article class="summary-card">
+        <p class="card-label">SPENT TODAY</p>
+        <strong id="todaySpent">₹0.00</strong>
+        <p id="todayMessage">Nothing yet today</p>
+      </article>
+
+      <article class="summary-card">
+        <p class="card-label">TOP CATEGORY</p>
+        <strong id="topCategory">—</strong>
+        <p id="topCategoryAmount">₹0.00 so far</p>
+      </article>
+    </section>
+
+    <section class="section-shell dashboard-grid">
+      <div class="left-column">
+        <article class="panel form-panel">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">ADD EXPENSE</p>
+              <h2 id="formTitle">Record a new expense</h2>
+            </div>
+            <span class="required-note">* REQUIRED</span>
+          </div>
+
+          <form id="expenseForm" novalidate>
+            <input type="hidden" id="editingId" />
+
+            <div class="field">
+              <label for="amount">Amount *</label>
+              <div class="input-with-prefix">
+                <span id="formCurrencySymbol">₹</span>
+                <input id="amount" type="number" min="0.01" step="0.01" placeholder="0.00" required />
+              </div>
+              <small class="error" id="amountError"></small>
+            </div>
+
+            <div class="field">
+              <label for="description">What was it for? *</label>
+              <input id="description" type="text" maxlength="80" placeholder="e.g. Lunch at canteen" required />
+              <small class="error" id="descriptionError"></small>
+            </div>
+
+            <div class="field">
+              <label>Category *</label>
+              <div id="categoryChoices" class="category-choices"></div>
+              <small class="error" id="categoryError"></small>
+            </div>
+
+            <div class="two-fields">
+              <div class="field">
+                <label for="date">Date *</label>
+                <input id="date" type="date" required />
+              </div>
+              <div class="field">
+                <label for="note">Note <span>(optional)</span></label>
+                <input id="note" type="text" maxlength="100" placeholder="e.g. with friends" />
+              </div>
+            </div>
+
+            <div class="form-actions">
+              <button class="btn btn-primary" type="submit" id="submitBtn">Add expense</button>
+              <button class="btn btn-secondary hidden" type="button" id="cancelEditBtn">Cancel edit</button>
+            </div>
+            <p class="privacy-note">Saved in your browser only — nothing leaves this device.</p>
+          </form>
+        </article>
+
+        <article class="panel expenses-panel">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">YOUR EXPENSES</p>
+              <h2>Recent spending</h2>
+            </div>
+            <span id="shownCount" class="required-note">0 SHOWN</span>
+          </div>
+
+          <div class="filters" id="filters"></div>
+          <div class="search-row">
+            <label class="search-box">
+              <span>⌕</span>
+              <input id="searchInput" type="search" placeholder="Search expenses..." />
+            </label>
+            <select id="sortSelect" aria-label="Sort expenses">
+              <option value="newest">Newest first</option>
+              <option value="oldest">Oldest first</option>
+              <option value="high">Amount: high to low</option>
+              <option value="low">Amount: low to high</option>
+            </select>
+          </div>
+
+          <div id="expenseList" class="expense-list"></div>
+          <div id="emptyState" class="empty-state hidden">
+            <div class="empty-icon">₹</div>
+            <h3>No expenses found</h3>
+            <p>Try another filter or add your first expense.</p>
+          </div>
+        </article>
+      </div>
+
+      <div class="right-column">
+        <article class="panel category-panel">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">SPENDING BY CATEGORY</p>
+              <h2>Where your money goes</h2>
+            </div>
+            <span id="activeCategoryCount" class="required-note">0 ACTIVE</span>
+          </div>
+          <div id="categoryBars" class="category-bars"></div>
+        </article>
+
+        <section id="annual" class="annual-section">
+          <p class="eyebrow accent">MONTH BY MONTH</p>
+          <h2>Monthly &amp; yearly expenses</h2>
+          <p class="section-intro">Every expense is grouped into its month automatically, then combined into a yearly total so you can see the bigger picture.</p>
+
+          <div class="annual-summary-grid">
+            <article class="summary-card dark">
+              <p class="card-label">YEAR TOTAL</p>
+              <strong id="yearTotal">₹0.00</strong>
+              <p id="yearLabel">2026 expenses</p>
+            </article>
+            <article class="summary-card">
+              <p class="card-label">MONTHLY AVERAGE</p>
+              <strong id="yearAverage">₹0.00</strong>
+              <p>Average across months with spending</p>
+            </article>
+            <article class="summary-card">
+              <p class="card-label">HIGHEST MONTH</p>
+              <strong id="highestMonth">—</strong>
+              <p id="highestMonthAmount">₹0.00</p>
+            </article>
+          </div>
+
+          <article class="panel annual-panel">
+            <div class="annual-heading">
+              <div>
+                <p class="eyebrow">YEARLY BREAKDOWN</p>
+                <h3 id="annualYearTitle">2026</h3>
+              </div>
+              <div class="year-controls">
+                <button id="prevYearBtn" class="year-btn" type="button" aria-label="Previous year">‹</button>
+                <span id="selectedYearLabel">2026</span>
+                <button id="nextYearBtn" class="year-btn" type="button" aria-label="Next year">›</button>
+              </div>
+            </div>
+            <div id="monthlyGrid" class="monthly-grid"></div>
+          </article>
+        </section>
+
+        <article class="panel mini-insight">
+          <p class="eyebrow">TRACKING TIP</p>
+          <h2 id="trackingTipTitle">Small records, smarter choices.</h2>
+          <p id="trackingTipText">Record an expense right after you spend. Your monthly and yearly picture will update automatically.</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="why" class="section-shell content-section">
+      <p class="eyebrow accent">SMALL RECORDS, SMARTER CHOICES</p>
+      <h2>Why track everyday expenses?</h2>
+      <p class="section-intro">A quick record helps you understand your habits without turning student life into a complicated budget exercise.</p>
+
+      <div class="benefit-grid">
+        <article class="benefit-card">
+          <div class="benefit-icon">◎</div>
+          <h3>See the real pattern</h3>
+          <p>Small purchases add up. Categories make it easy to notice where your money goes each week.</p>
+        </article>
+        <article class="benefit-card">
+          <div class="benefit-icon">↗</div>
+          <h3>Plan before payday</h3>
+          <p>Compare spending with your monthly limit so you can make room for books, travel, and essentials.</p>
+        </article>
+        <article class="benefit-card">
+          <div class="benefit-icon">✓</div>
+          <h3>Build a calm habit</h3>
+          <p>A few seconds after each purchase gives you clearer choices and fewer end-of-month surprises.</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="settings" class="section-shell content-section settings-section">
+      <p class="eyebrow accent">MAKE IT YOURS</p>
+      <h2>Spending settings</h2>
+      <p class="section-intro">Set a maximum monthly amount and choose whether you want a gentle reminder while you track.</p>
+
+      <div class="settings-grid">
+        <article class="panel settings-card">
+          <div class="panel-heading">
+            <p class="eyebrow">GLOBAL CURRENCY</p>
+            <span class="required-note">RUPEE (₹)</span>
+          </div>
+          <div class="field settings-limit-field">
+            <label for="monthlyLimit">Monthly spending limit</label>
+            <div class="input-with-prefix">
+              <span id="settingsCurrencySymbol">₹</span>
+              <input id="monthlyLimit" type="number" min="0" step="100" placeholder="e.g. 5000" />
+            </div>
+          </div>
+          <div class="field global-currency-field">
+            <label for="currencySelect">Global currency</label>
+            <select id="currencySelect" class="settings-select">
+              <option value="INR">INR</option>
+              <option value="USD">USD</option>
+              <option value="EUR">EUR</option>
+              <option value="GBP">GBP</option>
+              <option value="JPY">JPY</option>
+              <option value="AED">AED</option>
+              <option value="AUD">AUD</option>
+              <option value="CAD">CAD</option>
+              <option value="SGD">SGD</option>
+            </select>
+          </div>
+          <div class="setting-row">
+            <div>
+              <strong>Gentle spending tips</strong>
+              <p>Show a simple note based on your current progress.</p>
+            </div>
+            <button id="tipsToggle" class="toggle on" type="button" role="switch" aria-checked="true">
+              <span></span>
+            </button>
+          </div>
+          <button id="saveSettingsBtn" class="btn btn-primary" type="button">Save settings</button>
+          <p id="settingsFeedback" class="feedback"></p>
+        </article>
+
+        <article class="limit-card">
+          <div class="limit-top">
+            <span>MONTHLY LIMIT</span>
+            <span id="limitStatus">NOT SET</span>
+          </div>
+          <h3 id="limitTitle">Set your limit</h3>
+          <p id="limitDescription">Add a monthly maximum to see how much room you have left.</p>
+          <div class="progress-track"><span id="limitProgress"></span></div>
+          <div class="limit-bottom">
+            <span id="limitSpent">₹0.00 SPENT</span>
+            <span id="limitRemaining">NO LIMIT</span>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section id="contact" class="section-shell contact-page">
+      <p class="eyebrow accent">QUESTIONS OR FEEDBACK</p>
+      <h2>Contact us</h2>
+      <p class="contact-intro">Share a question, report a problem, or suggest an improvement for the tracker.</p>
+
+      <div class="contact-card">
+        <div class="contact-copy">
+          <h3>How can we help?</h3>
+          <p>Use the form to prepare your message. This student demo checks your details but does not send or store them.</p>
+          <div class="contact-topics">
+            <span>Expense tracking questions</span>
+            <span>Feature suggestions</span>
+            <span>Accessibility feedback</span>
+          </div>
+        </div>
+
+        <form id="contactForm" class="contact-form" novalidate>
+          <div class="two-fields">
+            <div class="field">
+              <label for="contactName">Your name *</label>
+              <input id="contactName" type="text" placeholder="Your name" required />
+              <small class="error" id="contactNameError"></small>
+            </div>
+            <div class="field">
+              <label for="contactEmail">Email *</label>
+              <input id="contactEmail" type="email" placeholder="you@example.com" required />
+              <small class="error" id="contactEmailError"></small>
+            </div>
+          </div>
+          <div class="field">
+            <label for="contactMessage">Message *</label>
+            <textarea id="contactMessage" rows="5" maxlength="500" placeholder="How can we help?" required></textarea>
+            <small class="error" id="contactMessageError"></small>
+          </div>
+          <button class="btn btn-primary" type="submit">Check message</button>
+          <p id="contactFeedback" class="feedback"></p>
+        </form>
+      </div>
+    </section>
+
+    <footer class="site-footer">
+      <div class="section-shell footer-inner">
+        <span>SPENDWISE · TRACK SMART, SPEND SMART</span>
+        <span>DATA SAVED LOCALLY VIA LOCALSTORAGE</span>
+      </div>
+    </footer>
+
+  </main>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+
+
+
+
+  <script src="script.js"></script>
+</body>
+</html>
